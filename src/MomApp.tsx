@@ -15,9 +15,10 @@ import {
   Upload,
   UserCog,
   Users,
+  Menu,
 } from 'lucide-react'
 
-import { meetings } from './mockData'
+import { isAncestorOrSelf } from './mockData'
 import {
   ROLE_PREFIXES,
   PREFIX_TO_ROLE,
@@ -27,6 +28,7 @@ import {
   type DashboardLevel,
   type WorkspaceView,
   type Icon,
+  getStoredMeetings,
 } from './types'
 
 import { IconButton } from './components/Common'
@@ -136,18 +138,39 @@ function Workspace({
   signOut: () => void
 }) {
   const [meetingFilter, setMeetingFilter] = useState('All')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const profile = profiles.find((item) => item.level === level)!
 
   const navigation = useMemo(() => getNavigation(level), [level])
+
+  // Load meetings dynamically from local storage
+  const allMeetings = getStoredMeetings()
+  const visibleMeetings = level === 'Super Admin'
+    ? allMeetings
+    : allMeetings.filter((m) => isAncestorOrSelf(profile.officeCode, m.officeCode))
+
   const filteredMeetings =
     meetingFilter === 'All'
-      ? meetings
-      : meetings.filter((meeting) => meeting.status === meetingFilter)
+      ? visibleMeetings
+      : visibleMeetings.filter((meeting) => meeting.status === meetingFilter)
 
   return (
     <div className="min-h-screen bg-[#fffaf0] text-[#0a0a0a]">
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-[#0a0a0a]/30 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto border-r border-[#e5e5e5] bg-[#faf5e8] text-[#0a0a0a]">
+        {/* Sidebar Navigation */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-[#faf5e8] border-r border-[#e5e5e5] text-[#0a0a0a] transition-transform duration-300 lg:translate-x-0 lg:static lg:h-screen lg:overflow-y-auto ${
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
+        >
           <div className="flex h-full flex-col">
             <div className="border-b border-[#e5e5e5] px-6 py-5">
               <div className="flex items-center gap-3">
@@ -155,8 +178,8 @@ function Workspace({
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#6a6a6a]">{profile.office}</p>
-                  <h1 className="display-type text-xl">{profile.title}</h1>
+                  <p className="text-xs text-[#6a6a6a] truncate max-w-[170px]">{profile.office}</p>
+                  <h1 className="display-type text-lg">{profile.title}</h1>
                 </div>
               </div>
             </div>
@@ -170,7 +193,10 @@ function Workspace({
                       : 'text-[#3a3a3a] hover:bg-[#f5f0e0]'
                   }`}
                   key={view}
-                  onClick={() => setActiveView(view)}
+                  onClick={() => {
+                    setActiveView(view)
+                    setIsMobileMenuOpen(false)
+                  }}
                   type="button"
                 >
                   <NavIcon className="h-4 w-4" />
@@ -193,10 +219,32 @@ function Workspace({
           </div>
         </aside>
 
+        {/* Main Workspace Frame */}
         <main className="min-w-0">
           <header className="sticky top-0 z-10 border-b border-[#e5e5e5] bg-[#fffaf0]/95 backdrop-blur">
-            <div className="flex flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-              <div>
+            {/* Mobile Header Bar */}
+            <div className="flex items-center justify-between px-5 py-4 lg:hidden border-b border-[#e5e5e5]/50">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 -ml-2 rounded-lg hover:bg-[#f5f0e0]"
+                  aria-label="Open navigation menu"
+                >
+                  <Menu className="h-6 w-6 text-[#1a3a3a]" />
+                </button>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-[#6a6a6a] font-semibold">{profile.office}</p>
+                  <h1 className="display-type text-base">{profile.title}</h1>
+                </div>
+              </div>
+              <IconButton label="Notifications">
+                <Bell className="h-4 w-4" />
+              </IconButton>
+            </div>
+
+            {/* Sub Header Content */}
+            <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="hidden lg:block">
                 <p className="text-sm font-medium text-[#6a6a6a]">
                   {profile.office} / {level}
                 </p>
@@ -204,25 +252,32 @@ function Workspace({
                   {activeView}
                 </h2>
               </div>
+              <div className="lg:hidden">
+                <h2 className="display-type text-2xl">{activeView}</h2>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="relative flex items-center">
+                <div className="relative flex flex-1 sm:flex-initial items-center">
                   <Search className="pointer-events-none absolute left-3 h-4 w-4 text-[#6a6a6a]" />
                   <input
-                    className="clay-input h-10 w-64 !pl-10"
+                    className="clay-input h-10 w-full sm:w-64 !pl-10 text-sm"
                     placeholder="Search records"
                   />
                 </div>
-                <IconButton label="Notifications">
-                  <Bell className="h-4 w-4" />
-                </IconButton>
-                <button
-                  className="clay-button inline-flex items-center gap-2"
-                  onClick={() => setActiveView('Create Meeting')}
-                  type="button"
-                >
-                  <Plus className="h-4 w-4" />
-                  New Meeting
-                </button>
+                <div className="hidden lg:block">
+                  <IconButton label="Notifications">
+                    <Bell className="h-4 w-4" />
+                  </IconButton>
+                </div>
+                {level !== 'Parent Office' && (
+                  <button
+                    className="clay-button inline-flex items-center gap-2 text-sm"
+                    onClick={() => setActiveView('Create Meeting')}
+                    type="button"
+                  >
+                    <Plus className="h-4 w-4" />
+                    New Meeting
+                  </button>
+                )}
               </div>
             </div>
           </header>
@@ -233,13 +288,18 @@ function Workspace({
               <MeetingList
                 filteredMeetings={filteredMeetings}
                 meetingFilter={meetingFilter}
-                readOnly={false}
+                readOnly={level === 'Parent Office'}
                 setActiveView={setActiveView}
                 setMeetingFilter={setMeetingFilter}
               />
             )}
             {activeView === 'Create Meeting' && <CreateMeeting />}
-            {activeView === 'Meeting Detail' && <MeetingDetail readOnly={false} />}
+            {activeView === 'Meeting Detail' && (
+              <MeetingDetail
+                readOnly={level === 'Parent Office'}
+                setActiveView={setActiveView}
+              />
+            )}
             {activeView === 'Submit Summary' && <SubmitSummary />}
             {activeView === 'Hierarchy' && <Hierarchy />}
             {activeView === 'Offices' && <Offices />}
@@ -273,14 +333,7 @@ function getNavigation(level: DashboardLevel): { view: WorkspaceView; icon: Icon
     ]
   }
 
-  if (level === 'Office Member') {
-    return [
-      { view: 'Overview', icon: LayoutDashboard },
-      { view: 'Meetings', icon: ClipboardList },
-      { view: 'Create Meeting', icon: Plus },
-      { view: 'Meeting Detail', icon: FileText },
-    ]
-  }
+
 
   return [
     { view: 'Overview', icon: LayoutDashboard },

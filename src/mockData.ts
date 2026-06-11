@@ -1,4 +1,4 @@
-export type Role = 'Office Admin' | 'Super Admin' | 'Office Member'
+export type Role = 'Office Admin' | 'Super Admin'
 
 export type View =
   | 'Dashboard'
@@ -24,6 +24,22 @@ export type OfficeNode = {
   pending: number
   lastMeeting: string
   children?: OfficeNode[]
+}
+
+export type Meeting = {
+  id: string
+  title: string
+  officeName: string
+  officeCode: string
+  status: MeetingStatus
+  date: string
+  location: string
+  guests: number
+  summary: string
+  actionItems: number
+  parentMeetingId?: string // to keep track of follow-up thread
+  agenda?: string
+  pdfFileName?: string
 }
 
 export const offices: OfficeNode[] = [
@@ -102,53 +118,132 @@ export const offices: OfficeNode[] = [
         meetings: 9,
         pending: 0,
         lastMeeting: '04 Jun 2026',
+        children: [
+          {
+            name: 'SCERT Sub-office A',
+            code: 'SCERT-S1',
+            type: 'SCERT',
+            meetings: 3,
+            pending: 0,
+            lastMeeting: '01 Jun 2026',
+          }
+        ]
+      },
+      {
+        name: 'TRML',
+        code: 'TRML-01',
+        type: 'TRML',
+        meetings: 11,
+        pending: 1,
+        lastMeeting: '10 Jun 2026',
+        children: [
+          {
+            name: 'TRML Sub-office A',
+            code: 'TRML-S1',
+            type: 'TRML',
+            meetings: 5,
+            pending: 1,
+            lastMeeting: '09 Jun 2026',
+          }
+        ]
       },
     ],
   },
 ]
 
-export const meetings = [
+// Default pre-populated meetings
+export const initialMeetings: Meeting[] = [
   {
+    id: 'meet-1',
     title: 'District e-Governance Review',
-    office: 'DM Office',
-    status: 'SCHEDULED' as MeetingStatus,
-    date: '12 Jun 2026, 11:00 AM',
+    officeName: 'DM Office',
+    officeCode: 'DM-TRP',
+    status: 'SCHEDULED',
+    date: '2026-06-12T11:00',
     location: 'DM Conference Hall',
     guests: 18,
     summary: 'Pending',
     actionItems: 6,
+    agenda: 'Review of district-level e-Governance initiatives, pending connectivity actions, PDF record submission, and follow-up ownership across NIC, DIT, ADM, and block offices.',
   },
   {
+    id: 'meet-2',
     title: 'NIC Infrastructure Upgrade',
-    office: 'NIC Tripura',
-    status: 'COMPLETED' as MeetingStatus,
-    date: '10 Jun 2026, 03:30 PM',
+    officeName: 'NIC Tripura',
+    officeCode: 'NIC-TRP-01',
+    status: 'COMPLETED',
+    date: '2026-06-10T15:30',
     location: 'NIC Meeting Room',
     guests: 9,
     summary: 'Submitted v2',
     actionItems: 4,
+    agenda: 'Review network backbone speed and server rack layouts in all District IT centers.',
   },
   {
+    id: 'meet-3',
     title: 'Block Office Connectivity Follow-up',
-    office: 'DIT Tripura',
-    status: 'IN_PROGRESS' as MeetingStatus,
-    date: '11 Jun 2026, 02:00 PM',
+    officeName: 'DIT Tripura',
+    officeCode: 'DIT-TRP',
+    status: 'IN_PROGRESS',
+    date: '2026-06-11T14:00',
     location: 'Virtual',
     guests: 23,
     summary: 'Not due',
     actionItems: 8,
+    agenda: 'Following up on regional connectivity gaps and optical fiber alignments.',
   },
   {
+    id: 'meet-4',
     title: 'SCERT Curriculum Digitization',
-    office: 'SCERT',
-    status: 'COMPLETED' as MeetingStatus,
-    date: '06 Jun 2026, 12:00 PM',
+    officeName: 'SCERT',
+    officeCode: 'SCERT-01',
+    status: 'COMPLETED',
+    date: '2026-06-06T12:00',
     location: 'SCERT Board Room',
     guests: 12,
     summary: 'PDF only',
     actionItems: 3,
+    agenda: 'Reviewing digital textbooks upload process on DIKSHA platform.',
+  },
+  {
+    id: 'meet-5',
+    title: 'TRML Land Records Digitization',
+    officeName: 'TRML',
+    officeCode: 'TRML-01',
+    status: 'SCHEDULED',
+    date: '2026-06-15T10:30',
+    location: 'TRML Hall 2',
+    guests: 14,
+    summary: 'Pending',
+    actionItems: 5,
+    agenda: 'Planning phase for cadastral map digitalization in block levels.',
+  },
+  {
+    id: 'meet-6',
+    title: 'TRML Sub-office Connectivity Setup',
+    officeName: 'TRML Sub-office A',
+    officeCode: 'TRML-S1',
+    status: 'COMPLETED',
+    date: '2026-06-09T11:00',
+    location: 'Sub-office Conference Space',
+    guests: 6,
+    summary: 'Initial report completed',
+    actionItems: 2,
+    agenda: 'Assessing hardware requirements for networking TRML sub-offices.',
   },
 ]
+
+// To maintain standard compatibility for files that do not support dynamic state yet
+export const meetings = initialMeetings.map(m => ({
+  title: m.title,
+  office: m.officeName,
+  status: m.status,
+  date: m.date.replace('T', ' '),
+  location: m.location,
+  guests: m.guests,
+  summary: m.summary,
+  actionItems: m.actionItems
+}))
 
 export const guests = [
   ['Maya Debbarma', 'District Informatics Officer', 'NIC Tripura', 'ATTENDED'],
@@ -166,6 +261,35 @@ export const actions = [
 export const users = [
   ['Udai Das', 'udai.das@gov.in', 'DM Office', 'SUPER_ADMIN', 'Active'],
   ['Maya Debbarma', 'maya.nic@gov.in', 'NIC Tripura', 'OFFICE_ADMIN', 'Active'],
-  ['Ananya Saha', 'ananya.dit@gov.in', 'DIT Tripura', 'OFFICE_MEMBER', 'Active'],
+  ['Ananya Saha', 'ananya.dit@gov.in', 'DIT Tripura', 'OFFICE_ADMIN', 'Active'],
   ['R. Chakraborty', 'rc.adm@gov.in', 'ADM Office', 'OFFICE_ADMIN', 'Inactive'],
 ]
+
+// Check if directOfficeCode is ancestor of queryOfficeCode in the tree
+export function isAncestorOrSelf(ancestorCode: string, descendantCode: string, nodes: OfficeNode[] = offices): boolean {
+  if (ancestorCode === descendantCode) return true
+
+  const findNode = (code: string, list: OfficeNode[]): OfficeNode | null => {
+    for (const node of list) {
+      if (node.code === code) return node
+      if (node.children) {
+        const found = findNode(code, node.children)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const ancestorNode = findNode(ancestorCode, nodes)
+  if (!ancestorNode || !ancestorNode.children) return false
+
+  const checkDescendant = (code: string, list: OfficeNode[]): boolean => {
+    for (const node of list) {
+      if (node.code === code) return true
+      if (node.children && checkDescendant(code, node.children)) return true
+    }
+    return false
+  }
+
+  return checkDescendant(descendantCode, ancestorNode.children)
+}

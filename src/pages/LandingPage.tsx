@@ -34,7 +34,6 @@ export function LandingPage({
     'Office Admin': { email: 'maya.nic@gov.in', pass: 'nic@tripura2026' },
     'Parent Office': { email: 'rc.adm@gov.in', pass: 'adm@tripura2026' },
     'Super Admin': { email: 'udai.das@gov.in', pass: 'super@tripura2026' },
-    'Office Member': { email: 'ananya.dit@gov.in', pass: 'member@dit2026' },
   }
 
   const activeCreds = credentials[selectedLevel]
@@ -211,8 +210,8 @@ export function LandingPage({
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-lg bg-[#a4d4c5] grid place-items-center"><Building2 className="h-5 w-5" /></div>
                   <div>
-                    <p className="font-bold text-sm">DIT Office (Member)</p>
-                    <p className="text-[10px] text-[#6a6a6a]">Log minutes and action items</p>
+                    <p className="font-bold text-sm">SCERT Office (Admin)</p>
+                    <p className="text-[10px] text-[#6a6a6a]">Create meeting & log action items</p>
                   </div>
                 </div>
                 <div className="text-xs font-bold text-[#ff4d8b]">Triggers Outbound</div>
@@ -280,7 +279,6 @@ export function LandingPage({
                       {profile.level === 'Office Admin' && <Building2 className="h-5 w-5" />}
                       {profile.level === 'Parent Office' && <Eye className="h-5 w-5" />}
                       {profile.level === 'Super Admin' && <UserCog className="h-5 w-5" />}
-                      {profile.level === 'Office Member' && <Users className="h-5 w-5" />}
                     </div>
                     <div>
                       <h4 className="font-bold text-lg">{profile.level}</h4>

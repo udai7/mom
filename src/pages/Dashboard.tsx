@@ -12,7 +12,7 @@ import {
   UserCog,
   Users,
 } from 'lucide-react'
-import { actions, meetings, offices } from '../mockData'
+import { actions, offices, isAncestorOrSelf } from '../mockData'
 import {
   Panel,
   Badge,
@@ -23,7 +23,7 @@ import {
   MiniMetric,
 } from '../components/Common'
 import { OfficeTree, OfficeActivityTable } from '../components/OfficeTreeComponents'
-import type { DashboardLevel, WorkspaceView, Icon } from '../types'
+import { getStoredMeetings, profiles, type DashboardLevel, type WorkspaceView, type Icon } from '../types'
 
 export function Dashboard({
   level,
@@ -32,19 +32,51 @@ export function Dashboard({
   level: DashboardLevel
   setActiveView: (view: WorkspaceView) => void
 }) {
+  const profile = profiles.find((p) => p.level === level)!
+  const userOfficeCode = profile.officeCode
+
+  // Dynamically load stored meetings
+  const allMeetings = getStoredMeetings()
+
+  // Filter meetings based on ancestral permissions:
+  // Direct ancestors can see child office data, otherwise restricted. Super Admin sees all.
+  const visibleMeetings =
+    level === 'Super Admin'
+      ? allMeetings
+      : allMeetings.filter((meeting) => isAncestorOrSelf(userOfficeCode, meeting.officeCode))
+
+  const handleMeetingClick = (meetingId: string) => {
+    localStorage.setItem('mom_active_meeting_id', meetingId)
+    setActiveView('Meeting Detail')
+  }
+
   if (level === 'Super Admin') {
-    return <SuperAdminDashboard setActiveView={setActiveView} />
+    return (
+      <SuperAdminDashboard
+        visibleMeetings={visibleMeetings}
+        setActiveView={setActiveView}
+        onMeetingClick={handleMeetingClick}
+      />
+    )
   }
 
   if (level === 'Parent Office') {
-    return <ParentOfficeDashboard setActiveView={setActiveView} />
+    return (
+      <ParentOfficeDashboard
+        visibleMeetings={visibleMeetings}
+        setActiveView={setActiveView}
+        onMeetingClick={handleMeetingClick}
+      />
+    )
   }
 
-  if (level === 'Office Member') {
-    return <MemberDashboard setActiveView={setActiveView} />
-  }
-
-  return <OfficeAdminDashboard setActiveView={setActiveView} />
+  return (
+    <OfficeAdminDashboard
+      visibleMeetings={visibleMeetings}
+      setActiveView={setActiveView}
+      onMeetingClick={handleMeetingClick}
+    />
+  )
 }
 
 function Stats({ items }: { items: [string, string, Icon][] }) {
@@ -57,23 +89,44 @@ function Stats({ items }: { items: [string, string, Icon][] }) {
   )
 }
 
-function OfficeAdminDashboard({ setActiveView }: { setActiveView: (view: WorkspaceView) => void }) {
+function OfficeAdminDashboard({
+  visibleMeetings,
+  setActiveView,
+  onMeetingClick,
+}: {
+  visibleMeetings: any[]
+  setActiveView: (view: WorkspaceView) => void
+  onMeetingClick: (id: string) => void
+}) {
+  const totalMeetings = visibleMeetings.length
+  const pendingMeetings = visibleMeetings.filter((m) => m.status !== 'COMPLETED').length
+  const actionItemsCount = visibleMeetings.reduce((acc, m) => acc + (m.actionItems || 0), 0)
+  const totalGuests = visibleMeetings.reduce((acc, m) => acc + (m.guests || 0), 0)
+
   return (
     <div className="space-y-5">
       <Stats
         items={[
-          ['Meetings this month', '22', CalendarDays],
-          ['Pending summaries', '4', FileText],
-          ['Open action items', '13', ClipboardList],
-          ['Upcoming guests', '64', Users],
+          ['Meetings registered', String(totalMeetings), CalendarDays],
+          ['Pending summaries', String(pendingMeetings), FileText],
+          ['Open action items', String(actionItemsCount), ClipboardList],
+          ['Total guests', String(totalGuests), Users],
         ]}
       />
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <Panel action={<Badge tone="peach">Own office</Badge>} title="Office Operations">
+        <Panel action={<Badge tone="peach">My Office Dashboard</Badge>} title="Office Operations">
           <div className="space-y-3">
-            {meetings.slice(0, 3).map((meeting) => (
-              <MeetingRow key={meeting.title} meeting={meeting} />
-            ))}
+            {visibleMeetings.length > 0 ? (
+              visibleMeetings.slice(0, 3).map((meeting) => (
+                <MeetingRow
+                  key={meeting.id}
+                  meeting={meeting}
+                  onClick={() => onMeetingClick(meeting.id)}
+                />
+              ))
+            ) : (
+              <p className="text-sm text-[#6a6a6a]">No meetings recorded for this office.</p>
+            )}
           </div>
         </Panel>
         <Panel title="Admin Tasks">
@@ -86,15 +139,28 @@ function OfficeAdminDashboard({ setActiveView }: { setActiveView: (view: Workspa
   )
 }
 
-function ParentOfficeDashboard({ setActiveView }: { setActiveView: (view: WorkspaceView) => void }) {
+function ParentOfficeDashboard({
+  visibleMeetings,
+  setActiveView,
+  onMeetingClick,
+}: {
+  visibleMeetings: any[]
+  setActiveView: (view: WorkspaceView) => void
+  onMeetingClick: (id: string) => void
+}) {
+  const descendantOfficesCount = 12
+  const visibleSummaries = visibleMeetings.filter((m) => m.summary !== 'Pending').length
+  const pendingBelow = visibleMeetings.filter((m) => m.status !== 'COMPLETED').length
+  const pdfRecords = visibleMeetings.filter((m) => m.status === 'COMPLETED').length
+
   return (
     <div className="space-y-5">
       <Stats
         items={[
-          ['Descendant offices', '12', Building2],
-          ['Visible summaries', '31', FileText],
-          ['Pending below', '7', ClipboardList],
-          ['PDF records', '18', Download],
+          ['Descendant offices', String(descendantOfficesCount), Building2],
+          ['Visible summaries', String(visibleSummaries), FileText],
+          ['Pending below', String(pendingBelow), ClipboardList],
+          ['PDF records', String(pdfRecords), Download],
         ]}
       />
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
@@ -103,8 +169,14 @@ function ParentOfficeDashboard({ setActiveView }: { setActiveView: (view: Worksp
         </Panel>
         <Panel action={<Badge tone="amber">Read only</Badge>} title="Child Office Reports">
           <OfficeActivityTable />
-          <div className="mt-4">
-            <ActionButton icon={FileText} label="Open latest child meeting" onClick={() => setActiveView('Meeting Detail')} />
+          <div className="mt-4 space-y-3">
+            {visibleMeetings.length > 0 && (
+              <ActionButton
+                icon={FileText}
+                label={`Open latest child meeting: ${visibleMeetings[0].title}`}
+                onClick={() => onMeetingClick(visibleMeetings[0].id)}
+              />
+            )}
           </div>
         </Panel>
       </section>
@@ -112,15 +184,28 @@ function ParentOfficeDashboard({ setActiveView }: { setActiveView: (view: Worksp
   )
 }
 
-function SuperAdminDashboard({ setActiveView }: { setActiveView: (view: WorkspaceView) => void }) {
+function SuperAdminDashboard({
+  visibleMeetings,
+  setActiveView,
+  onMeetingClick,
+}: {
+  visibleMeetings: any[]
+  setActiveView: (view: WorkspaceView) => void
+  onMeetingClick: (id: string) => void
+}) {
+  const activeOfficesCount = 18
+  const activeUsersCount = 142
+  const hierarchyDepth = 5
+  const totalAuditEvents = visibleMeetings.length * 2 + 5
+
   return (
     <div className="space-y-5">
       <Stats
         items={[
-          ['Active offices', '18', Building2],
-          ['Active users', '142', Users],
-          ['Hierarchy depth', '5', GitBranch],
-          ['Audit events today', '86', ShieldCheck],
+          ['Active offices', String(activeOfficesCount), Building2],
+          ['Active users', String(activeUsersCount), Users],
+          ['Hierarchy depth', String(hierarchyDepth), GitBranch],
+          ['Audit events today', String(totalAuditEvents), ShieldCheck],
         ]}
       />
       <section className="grid gap-5 xl:grid-cols-3">
@@ -136,36 +221,6 @@ function SuperAdminDashboard({ setActiveView }: { setActiveView: (view: Workspac
           <MiniMetric label="JWT policy" value="24h access / 7d refresh" />
           <MiniMetric label="PDF storage" value="PostgreSQL bytea" />
           <MiniMetric label="Audit mode" value="Append-only writes" />
-        </Panel>
-      </section>
-    </div>
-  )
-}
-
-function MemberDashboard({ setActiveView }: { setActiveView: (view: WorkspaceView) => void }) {
-  return (
-    <div className="space-y-5">
-      <Stats
-        items={[
-          ['Invited meetings', '6', CalendarDays],
-          ['Confirmed', '4', CheckCircle2],
-          ['Assigned actions', '3', ClipboardList],
-          ['Available summaries', '9', FileText],
-        ]}
-      />
-      <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-        <Panel action={<Badge tone="lavender">Participant</Badge>} title="My Meetings">
-          <div className="space-y-3">
-            {meetings.slice(0, 3).map((meeting) => (
-              <MeetingRow key={meeting.title} meeting={meeting} />
-            ))}
-          </div>
-        </Panel>
-        <Panel title="My Actions">
-          <DataTable headers={['Task', 'Assignee', 'Due date', 'Status']} rows={actions} />
-          <div className="mt-4">
-            <ActionButton icon={FileText} label="View meeting record" onClick={() => setActiveView('Meeting Detail')} />
-          </div>
         </Panel>
       </section>
     </div>
