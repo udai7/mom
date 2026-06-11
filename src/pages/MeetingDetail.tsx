@@ -152,7 +152,7 @@ export function MeetingDetail({
         </Panel>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section className="space-y-5">
         <Panel title="Guest List">
           <DataTable headers={['Name', 'Designation', 'Office', 'Attendance']} rows={guests} />
         </Panel>

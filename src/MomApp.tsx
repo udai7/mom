@@ -167,7 +167,7 @@ function Workspace({
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         {/* Sidebar Navigation */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-[#faf5e8] border-r border-[#e5e5e5] text-[#0a0a0a] transition-transform duration-300 lg:translate-x-0 lg:static lg:h-screen lg:overflow-y-auto ${
+          className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-[#faf5e8] border-r border-[#e5e5e5] text-[#0a0a0a] transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
