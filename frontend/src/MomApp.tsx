@@ -41,6 +41,21 @@ import { SubmitSummary } from './pages/SubmitSummary'
 import { Hierarchy } from './pages/Hierarchy'
 import { Offices } from './pages/Offices'
 import { Users as UsersPage } from './pages/Users'
+import {
+  clearAuthSession,
+  login,
+  logout,
+  saveAuthSession,
+  type AuthUser,
+  type BackendRole,
+} from './api/auth'
+
+const BACKEND_ROLE_TO_DASHBOARD: Record<BackendRole, DashboardLevel> = {
+  SUPER_ADMIN: 'Super Admin',
+  DM_ADMIN: 'Parent Office',
+  OFFICE_ADMIN: 'Office Admin',
+  OFFICE_MEMBER: 'Office Admin',
+}
 
 function LandingPageRoot({
   selectedLevel,
@@ -50,8 +65,29 @@ function LandingPageRoot({
   setSelectedLevel: (level: DashboardLevel) => void
 }) {
   const navigate = useNavigate()
+  const [authError, setAuthError] = useState('')
+  const [isSigningIn, setIsSigningIn] = useState(false)
 
-  const signIn = () => {
+  const signIn = async (email: string, password: string) => {
+    setAuthError('')
+    setIsSigningIn(true)
+    try {
+      const auth = await login(email, password)
+      saveAuthSession(auth)
+      const mappedLevel = BACKEND_ROLE_TO_DASHBOARD[auth.user.role] ?? selectedLevel
+      setSelectedLevel(mappedLevel)
+
+      localStorage.setItem('mom_authenticated', 'true')
+      localStorage.setItem('mom_role', mappedLevel)
+      navigate(`/${ROLE_PREFIXES[mappedLevel]}/overview`)
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to sign in.')
+    } finally {
+      setIsSigningIn(false)
+    }
+  }
+
+  const mockSignIn = () => {
     localStorage.setItem('mom_authenticated', 'true')
     localStorage.setItem('mom_role', selectedLevel)
     navigate(`/${ROLE_PREFIXES[selectedLevel]}/overview`)
@@ -62,6 +98,9 @@ function LandingPageRoot({
       selectedLevel={selectedLevel}
       setSelectedLevel={setSelectedLevel}
       signIn={signIn}
+      mockSignIn={mockSignIn}
+      authError={authError}
+      isSigningIn={isSigningIn}
     />
   )
 }
@@ -77,9 +116,12 @@ function WorkspaceRoot() {
     return <Navigate to="/" replace />
   }
 
-  const signOut = () => {
-    localStorage.removeItem('mom_authenticated')
-    localStorage.removeItem('mom_role')
+  const signOut = async () => {
+    const refreshToken = localStorage.getItem('mom_refresh_token')
+    if (refreshToken) {
+      await logout(refreshToken).catch(() => undefined)
+    }
+    clearAuthSession()
     navigate('/')
   }
 
@@ -139,7 +181,16 @@ function Workspace({
 }) {
   const [meetingFilter, setMeetingFilter] = useState('All')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const profile = profiles.find((item) => item.level === level)!
+  const authUser = getStoredAuthUser()
+  const fallbackProfile = profiles.find((item) => item.level === level)!
+  const profile = authUser
+    ? {
+        ...fallbackProfile,
+        office: authUser.office.name ?? fallbackProfile.office,
+        officeCode: authUser.office.code ?? fallbackProfile.officeCode,
+        title: roleTitle(authUser.role),
+      }
+    : fallbackProfile
 
   const navigation = useMemo(() => getNavigation(level), [level])
 
@@ -309,6 +360,26 @@ function Workspace({
       </div>
     </div>
   )
+}
+
+function getStoredAuthUser(): AuthUser | null {
+  const data = localStorage.getItem('mom_user')
+  if (!data) return null
+  try {
+    return JSON.parse(data)
+  } catch {
+    return null
+  }
+}
+
+function roleTitle(role: BackendRole): string {
+  const titles: Record<BackendRole, string> = {
+    SUPER_ADMIN: 'Central Super Admin',
+    DM_ADMIN: 'DM Admin',
+    OFFICE_ADMIN: 'Office Admin',
+    OFFICE_MEMBER: 'Office Member',
+  }
+  return titles[role]
 }
 
 function getNavigation(level: DashboardLevel): { view: WorkspaceView; icon: Icon }[] {

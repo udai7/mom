@@ -20,29 +20,45 @@ import { meetings } from '../mockData'
 import { profiles, type DashboardLevel } from '../types'
 
 export function LandingPage({
+  authError,
+  isSigningIn,
+  mockSignIn,
   selectedLevel,
   setSelectedLevel,
   signIn,
 }: {
+  authError?: string
+  isSigningIn?: boolean
+  mockSignIn: () => void
   selectedLevel: DashboardLevel
   setSelectedLevel: (level: DashboardLevel) => void
-  signIn: () => void
+  signIn: (email: string, password: string) => Promise<void>
 }) {
-  const selectedProfile = profiles.find((profile) => profile.level === selectedLevel)!
+  const [email, setEmail] = useState('maya.nic@gov.in')
+  const [password, setPassword] = useState('nicadmin2026')
 
   const credentials: Record<DashboardLevel, { email: string; pass: string }> = {
-    'Office Admin': { email: 'maya.nic@gov.in', pass: 'nic@tripura2026' },
-    'Parent Office': { email: 'rc.adm@gov.in', pass: 'adm@tripura2026' },
-    'Super Admin': { email: 'udai.das@gov.in', pass: 'super@tripura2026' },
+    'Office Admin': { email: 'maya.nic@gov.in', pass: 'nicadmin2026' },
+    'Parent Office': { email: 'dm@gov.in', pass: 'dmadmin2026' },
+    'Super Admin': { email: 'super@gov.in', pass: 'superadmin2026' },
   }
-
-  const activeCreds = credentials[selectedLevel]
 
   const handleSmoothScroll = (id: string) => {
     const element = document.getElementById(id)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' })
     }
+  }
+
+  const fillDemoCredentials = (level: DashboardLevel) => {
+    setSelectedLevel(level)
+    setEmail(credentials[level].email)
+    setPassword(credentials[level].pass)
+  }
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+    void signIn(email, password)
   }
 
   return (
@@ -266,7 +282,7 @@ export function LandingPage({
                 return (
                   <button
                     key={profile.level}
-                    onClick={() => setSelectedLevel(profile.level)}
+                    onClick={() => fillDemoCredentials(profile.level)}
                     className={`w-full text-left p-5 rounded-2xl border transition duration-200 flex items-start gap-4 ${
                       isSelected
                         ? 'border-[#0a0a0a] bg-white shadow-md translate-x-1'
@@ -295,20 +311,20 @@ export function LandingPage({
               <div className="mb-6 flex items-center justify-between border-b border-[#faf5e8] pb-4">
                 <div>
                   <h3 className="display-type text-2xl">Console Authentication</h3>
-                  <p className="text-xs text-[#6a6a6a] mt-1">Mock profile session details</p>
+                  <p className="text-xs text-[#6a6a6a] mt-1">FastAPI account sign in</p>
                 </div>
                 <span className="rounded-full bg-[#faf5e8] px-3 py-1 text-xs font-bold text-[#ff4d8b]">
                   {selectedLevel}
                 </span>
               </div>
 
-              <div className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Email Username</label>
                   <input
-                    readOnly
+                    onChange={(event) => setEmail(event.target.value)}
                     type="text"
-                    value={activeCreds.email}
+                    value={email}
                     className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
                   />
                 </div>
@@ -316,25 +332,39 @@ export function LandingPage({
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Access Passcode</label>
                   <input
-                    readOnly
+                    onChange={(event) => setPassword(event.target.value)}
                     type="password"
-                    value={activeCreds.pass}
+                    value={password}
                     className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
                   />
                 </div>
 
                 <div className="rounded-2xl bg-[#faf5e8] p-4 text-xs text-[#6a6a6a] leading-relaxed">
-                  <strong>Verification Note:</strong> This mock authentication signs you into the localized client-state dashboard sandbox simulating exact regional authorization rules.
+                  <strong>Seed credentials:</strong> Use the persona buttons to fill a seeded backend user. Start the backend at <code>http://localhost:8000</code>.
                 </div>
 
+                {authError && (
+                  <div className="rounded-2xl bg-rose-50 p-4 text-xs font-semibold text-rose-700">
+                    {authError}
+                  </div>
+                )}
+
                 <button
-                  onClick={signIn}
+                  disabled={isSigningIn}
                   className="w-full clay-button py-4 text-base font-bold flex items-center justify-center gap-3 mt-4"
+                  type="submit"
                 >
-                  Open Dashboard Console
+                  {isSigningIn ? 'Signing in...' : 'Open Dashboard Console'}
                   <ArrowRight className="h-5 w-5" />
                 </button>
-              </div>
+                <button
+                  onClick={mockSignIn}
+                  className="w-full clay-button-secondary py-3 text-sm font-bold"
+                  type="button"
+                >
+                  Continue with local mock session
+                </button>
+              </form>
             </div>
           </div>
         </div>
