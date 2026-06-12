@@ -13,29 +13,32 @@ import {
   ArrowRight,
   Database,
   Eye,
+  EyeOff,
   History,
   Check,
 } from 'lucide-react'
 import { meetings } from '../mockData'
 import { profiles, type DashboardLevel } from '../types'
+import { getPublicParentOffices, registerOffice } from '../api/admin'
 
 export function LandingPage({
   authError,
   isSigningIn,
-  mockSignIn,
   selectedLevel,
   setSelectedLevel,
   signIn,
+  onEnterConsole,
 }: {
   authError?: string
   isSigningIn?: boolean
-  mockSignIn: () => void
   selectedLevel: DashboardLevel
   setSelectedLevel: (level: DashboardLevel) => void
   signIn: (email: string, password: string) => Promise<void>
+  onEnterConsole: () => void
 }) {
   const [email, setEmail] = useState('maya.nic@gov.in')
   const [password, setPassword] = useState('nicadmin2026')
+  const [showPassword, setShowPassword] = useState(false)
 
   const credentials: Record<DashboardLevel, { email: string; pass: string }> = {
     'Office Admin': { email: 'maya.nic@gov.in', pass: 'nicadmin2026' },
@@ -83,7 +86,7 @@ export function LandingPage({
           </div>
 
           <button
-            onClick={() => handleSmoothScroll('portals')}
+            onClick={onEnterConsole}
             className="clay-button inline-flex items-center gap-2"
           >
             Enter Console
@@ -113,7 +116,7 @@ export function LandingPage({
 
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => handleSmoothScroll('portals')}
+                onClick={onEnterConsole}
                 className="clay-button text-base px-6 py-3.5 inline-flex items-center gap-3"
               >
                 Access Portal Console
@@ -306,41 +309,62 @@ export function LandingPage({
               })}
             </div>
 
-            {/* Right Column: Sign In Card */}
+            {/* Right Column: Console authentication card */}
             <div className="lg:col-span-7 bg-white border border-[#e5e5e5] rounded-3xl p-8 shadow-sm">
-              <div className="mb-6 flex items-center justify-between border-b border-[#faf5e8] pb-4">
-                <div>
-                  <h3 className="display-type text-2xl">Console Authentication</h3>
-                  <p className="text-xs text-[#6a6a6a] mt-1">FastAPI account sign in</p>
-                </div>
-                <span className="rounded-full bg-[#faf5e8] px-3 py-1 text-xs font-bold text-[#ff4d8b]">
-                  {selectedLevel}
-                </span>
-              </div>
-
               <form className="space-y-4" onSubmit={handleSubmit}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="display-type text-xl">Sign In</h3>
+                    <p className="text-xs text-[#6a6a6a] mt-0.5">FastAPI account credential verification</p>
+                  </div>
+                  <span className="rounded-full bg-[#faf5e8] px-3 py-1 text-xs font-bold text-[#ff4d8b]">
+                    {selectedLevel}
+                  </span>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Email Username</label>
                   <input
                     onChange={(event) => setEmail(event.target.value)}
-                    type="text"
+                    type="email"
                     value={email}
+                    required
                     className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Access Passcode</label>
-                  <input
-                    onChange={(event) => setPassword(event.target.value)}
-                    type="password"
-                    value={password}
-                    className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
-                  />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a]">Access Passcode</label>
+                    <button
+                      type="button"
+                      onClick={() => alert('Please contact your parent office administrator or system support to request a password reset.')}
+                      className="text-xs font-semibold text-[#ff4d8b] hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      onChange={(event) => setPassword(event.target.value)}
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      required
+                      className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a] pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6a6a6a] hover:text-[#0a0a0a] transition p-1"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="rounded-2xl bg-[#faf5e8] p-4 text-xs text-[#6a6a6a] leading-relaxed">
-                  <strong>Seed credentials:</strong> Use the persona buttons to fill a seeded backend user. Start the backend at <code>http://localhost:8000</code>.
+                  <strong>Seed credentials:</strong> Use the persona buttons on the left to pre-fill a seeded account. Make sure the backend is active at <code>http://localhost:8000</code>.
                 </div>
 
                 {authError && (
@@ -356,13 +380,6 @@ export function LandingPage({
                 >
                   {isSigningIn ? 'Signing in...' : 'Open Dashboard Console'}
                   <ArrowRight className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={mockSignIn}
-                  className="w-full clay-button-secondary py-3 text-sm font-bold"
-                  type="button"
-                >
-                  Continue with local mock session
                 </button>
               </form>
             </div>

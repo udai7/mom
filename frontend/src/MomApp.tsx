@@ -33,6 +33,7 @@ import {
 
 import { IconButton } from './components/Common'
 import { LandingPage } from './pages/LandingPage'
+import { AuthPage } from './pages/AuthPage'
 import { Dashboard } from './pages/Dashboard'
 import { MeetingList } from './pages/MeetingList'
 import { CreateMeeting } from './pages/CreateMeeting'
@@ -68,6 +69,14 @@ function LandingPageRoot({
   const [authError, setAuthError] = useState('')
   const [isSigningIn, setIsSigningIn] = useState(false)
 
+  // Redirect if already authenticated
+  const authUser = getStoredAuthUser()
+  const token = localStorage.getItem('mom_access_token')
+  if (token && authUser) {
+    const mappedLevel = BACKEND_ROLE_TO_DASHBOARD[authUser.role] ?? selectedLevel
+    return <Navigate to={`/${ROLE_PREFIXES[mappedLevel]}/overview`} replace />
+  }
+
   const signIn = async (email: string, password: string) => {
     setAuthError('')
     setIsSigningIn(true)
@@ -87,18 +96,61 @@ function LandingPageRoot({
     }
   }
 
-  const mockSignIn = () => {
-    localStorage.setItem('mom_authenticated', 'true')
-    localStorage.setItem('mom_role', selectedLevel)
-    navigate(`/${ROLE_PREFIXES[selectedLevel]}/overview`)
-  }
-
   return (
     <LandingPage
       selectedLevel={selectedLevel}
       setSelectedLevel={setSelectedLevel}
       signIn={signIn}
-      mockSignIn={mockSignIn}
+      authError={authError}
+      isSigningIn={isSigningIn}
+      onEnterConsole={() => navigate('/auth')}
+    />
+  )
+}
+
+function AuthPageRoot({
+  selectedLevel,
+  setSelectedLevel,
+}: {
+  selectedLevel: DashboardLevel
+  setSelectedLevel: (level: DashboardLevel) => void
+}) {
+  const navigate = useNavigate()
+  const [authError, setAuthError] = useState('')
+  const [isSigningIn, setIsSigningIn] = useState(false)
+
+  // Redirect if already authenticated
+  const authUser = getStoredAuthUser()
+  const token = localStorage.getItem('mom_access_token')
+  if (token && authUser) {
+    const mappedLevel = BACKEND_ROLE_TO_DASHBOARD[authUser.role] ?? selectedLevel
+    return <Navigate to={`/${ROLE_PREFIXES[mappedLevel]}/overview`} replace />
+  }
+
+  const signIn = async (email: string, password: string) => {
+    setAuthError('')
+    setIsSigningIn(true)
+    try {
+      const auth = await login(email, password)
+      saveAuthSession(auth)
+      const mappedLevel = BACKEND_ROLE_TO_DASHBOARD[auth.user.role] ?? selectedLevel
+      setSelectedLevel(mappedLevel)
+
+      localStorage.setItem('mom_authenticated', 'true')
+      localStorage.setItem('mom_role', mappedLevel)
+      navigate(`/${ROLE_PREFIXES[mappedLevel]}/overview`)
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to sign in.')
+    } finally {
+      setIsSigningIn(false)
+    }
+  }
+
+  return (
+    <AuthPage
+      selectedLevel={selectedLevel}
+      setSelectedLevel={setSelectedLevel}
+      signIn={signIn}
       authError={authError}
       isSigningIn={isSigningIn}
     />
@@ -109,11 +161,25 @@ function WorkspaceRoot() {
   const { rolePrefix, viewSlug } = useParams<{ rolePrefix: string; viewSlug: string }>()
   const navigate = useNavigate()
 
+  const authUser = getStoredAuthUser()
+  const token = localStorage.getItem('mom_access_token')
+
+  if (!token || !authUser) {
+    return <Navigate to="/" replace />
+  }
+
+  const expectedLevel = BACKEND_ROLE_TO_DASHBOARD[authUser.role]
+  const expectedPrefix = ROLE_PREFIXES[expectedLevel]
+
+  if (rolePrefix !== expectedPrefix) {
+    return <Navigate to={`/${expectedPrefix}/overview`} replace />
+  }
+
   const level = rolePrefix ? PREFIX_TO_ROLE[rolePrefix] : undefined
   const activeView = viewSlug ? SLUG_TO_VIEW[viewSlug] : undefined
 
   if (!level || !activeView) {
-    return <Navigate to="/" replace />
+    return <Navigate to={`/${expectedPrefix}/overview`} replace />
   }
 
   const signOut = async () => {
@@ -138,11 +204,16 @@ function WorkspaceRoot() {
 }
 
 function RoleRedirect() {
-  const { rolePrefix } = useParams<{ rolePrefix: string }>()
-  if (rolePrefix && PREFIX_TO_ROLE[rolePrefix]) {
-    return <Navigate to={`/${rolePrefix}/overview`} replace />
+  const authUser = getStoredAuthUser()
+  const token = localStorage.getItem('mom_access_token')
+
+  if (!token || !authUser) {
+    return <Navigate to="/" replace />
   }
-  return <Navigate to="/" replace />
+
+  const expectedLevel = BACKEND_ROLE_TO_DASHBOARD[authUser.role]
+  const expectedPrefix = ROLE_PREFIXES[expectedLevel]
+  return <Navigate to={`/${expectedPrefix}/overview`} replace />
 }
 
 function MomApp() {
@@ -155,6 +226,15 @@ function MomApp() {
           path="/"
           element={
             <LandingPageRoot
+              selectedLevel={selectedLevel}
+              setSelectedLevel={setSelectedLevel}
+            />
+          }
+        />
+        <Route
+          path="/auth"
+          element={
+            <AuthPageRoot
               selectedLevel={selectedLevel}
               setSelectedLevel={setSelectedLevel}
             />
@@ -181,16 +261,14 @@ function Workspace({
 }) {
   const [meetingFilter, setMeetingFilter] = useState('All')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const authUser = getStoredAuthUser()
+  const authUser = getStoredAuthUser()!
   const fallbackProfile = profiles.find((item) => item.level === level)!
-  const profile = authUser
-    ? {
-        ...fallbackProfile,
-        office: authUser.office.name ?? fallbackProfile.office,
-        officeCode: authUser.office.code ?? fallbackProfile.officeCode,
-        title: roleTitle(authUser.role),
-      }
-    : fallbackProfile
+  const profile = {
+    ...fallbackProfile,
+    office: authUser.office.name ?? fallbackProfile.office,
+    officeCode: authUser.office.code ?? fallbackProfile.officeCode,
+    title: roleTitle(authUser.role),
+  }
 
   const navigation = useMemo(() => getNavigation(level), [level])
 
@@ -362,7 +440,7 @@ function Workspace({
   )
 }
 
-function getStoredAuthUser(): AuthUser | null {
+export function getStoredAuthUser(): AuthUser | null {
   const data = localStorage.getItem('mom_user')
   if (!data) return null
   try {
@@ -398,16 +476,18 @@ function getNavigation(level: DashboardLevel): { view: WorkspaceView; icon: Icon
     return [
       { view: 'Overview', icon: LayoutDashboard },
       { view: 'Hierarchy', icon: GitBranch },
+      { view: 'Offices', icon: Building2 },
+      { view: 'Users', icon: UserCog },
       { view: 'Meetings', icon: ClipboardList },
       { view: 'Create Meeting', icon: Plus },
       { view: 'Meeting Detail', icon: FileText },
     ]
   }
 
-
-
   return [
     { view: 'Overview', icon: LayoutDashboard },
+    { view: 'Offices', icon: Building2 },
+    { view: 'Users', icon: UserCog },
     { view: 'Meetings', icon: ClipboardList },
     { view: 'Create Meeting', icon: Plus },
     { view: 'Submit Summary', icon: Upload },

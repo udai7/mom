@@ -93,3 +93,31 @@ class AuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
 
+
+class OfficeAncestor(Base):
+    __tablename__ = "office_ancestors"
+
+    ancestor_office_id: Mapped[UUID] = mapped_column(ForeignKey("offices.id"), primary_key=True)
+    descendant_office_id: Mapped[UUID] = mapped_column(ForeignKey("offices.id"), primary_key=True)
+    depth: Mapped[int] = mapped_column(Integer)
+
+
+class AccountRegistrationRequest(Base):
+    __tablename__ = "account_registration_requests"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    office_id: Mapped[UUID] = mapped_column(ForeignKey("offices.id"))
+    primary_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    parent_office_id: Mapped[UUID | None] = mapped_column(ForeignKey("offices.id"), nullable=True)
+    requested_role: Mapped[str] = mapped_column(String(50))
+    status: Mapped[str] = mapped_column(String(50), default="PENDING")
+    submitted_payload: Mapped[dict] = mapped_column(JSONB, default=dict)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    reviewed_by_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    office: Mapped[Office] = relationship("Office", foreign_keys=[office_id])
+    primary_user: Mapped[User] = relationship("User", foreign_keys=[primary_user_id])
+
+
