@@ -1,6 +1,6 @@
 from uuid import UUID
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -203,7 +203,7 @@ async def register_office(
         parent_office_id=parent.id,
         requested_role="OFFICE_ADMIN",
         status="PENDING",
-        submitted_payload=payload.dict()
+        submitted_payload=jsonable_encoder(payload.dict())
     )
     session.add(req)
     await session.flush()

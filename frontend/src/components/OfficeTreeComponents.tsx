@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Building2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Building2, ChevronDown, ChevronRight, Info } from 'lucide-react'
 import { offices, type OfficeNode } from '../mockData'
 import { Badge, DataTable } from './Common'
 
@@ -15,6 +15,7 @@ export function OfficeTree({ nodes, depth = 0 }: { nodes: OfficeNode[]; depth?: 
 
 function OfficeTreeNode({ office, depth }: { office: OfficeNode; depth: number }) {
   const [expanded, setExpanded] = useState(true)
+  const [showDetails, setShowDetails] = useState(false)
   const hasChildren = office.children && office.children.length > 0
 
   return (
@@ -48,8 +49,54 @@ function OfficeTreeNode({ office, depth }: { office: OfficeNode; depth: number }
           <Badge tone={office.pending ? 'amber' : 'green'}>
             {office.pending ? `${office.pending} pending` : 'cleared'}
           </Badge>
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className={`p-1 rounded-md transition ${showDetails ? 'bg-[#1a3a3a] text-white shadow-sm' : 'hover:bg-[#faf5e8] text-[#1a3a3a]'}`}
+            title="View office details"
+            type="button"
+          >
+            <Info className="h-4 w-4" />
+          </button>
         </div>
       </div>
+      
+      {showDetails && (
+        <div 
+          className="mt-2 bg-white border border-[#e2e8f0] p-4 rounded-2xl text-xs space-y-2 text-[#4a5568] shadow-sm"
+          style={{ marginLeft: Math.min(depth * 10 + 24, 64) }}
+        >
+          <div className="flex items-center justify-between border-b border-[#edf2f7] pb-1.5 mb-2">
+            <span className="font-bold text-[#2d3748] uppercase tracking-wider text-[10px] flex items-center gap-1">
+              <span className="w-1.5 h-3 bg-[#3182ce] rounded-full"></span>
+              Office Registration & Address details
+            </span>
+            <span className="font-mono text-[#718096] text-[10px]">Code: {office.code}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <p><span className="font-semibold text-[#718096]">Official Email:</span> <span className="font-mono text-[#1a202c]">{office.official_email || 'N/A'}</span></p>
+              <p><span className="font-semibold text-[#718096]">Official Phone:</span> <span className="text-[#1a202c]">{office.official_phone || 'N/A'}</span></p>
+              <p><span className="font-semibold text-[#718096]">Department:</span> <span className="text-[#1a202c]">{office.department || 'N/A'}</span></p>
+            </div>
+            <div className="space-y-1.5">
+              <p><span className="font-semibold text-[#718096]">Website:</span> <span className="text-[#1a202c]">{office.website || 'N/A'}</span></p>
+              <p>
+                <span className="font-semibold text-[#718096]">Address:</span>{' '}
+                <span className="text-[#1a202c]">
+                  {[
+                    office.address_line_1,
+                    office.address_line_2,
+                    office.city,
+                    office.district,
+                    office.state,
+                    office.pincode
+                  ].filter(Boolean).join(', ') || 'N/A'}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {hasChildren && expanded && (
         <div className="mt-2">
           <OfficeTree depth={depth + 1} nodes={office.children!} />

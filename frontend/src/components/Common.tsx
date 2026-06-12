@@ -31,19 +31,20 @@ export function Badge({
   )
 }
 
-export function StatusBadge({ status }: { status: MeetingStatus }) {
+export function StatusBadge({ status }: { status: string }) {
+  const upper = (status || '').toUpperCase()
   const tone =
-    status === 'COMPLETED'
+    upper === 'COMPLETED'
       ? 'green'
-      : status === 'SCHEDULED'
+      : upper === 'SCHEDULED' || upper === 'UPCOMING'
         ? 'mint'
-        : status === 'IN_PROGRESS'
+        : upper === 'IN_PROGRESS' || upper === 'ONGOING'
           ? 'amber'
-          : status === 'CANCELLED'
+          : upper === 'CANCELLED'
             ? 'red'
             : 'slate'
 
-  return <Badge tone={tone}>{status.replace('_', ' ')}</Badge>
+  return <Badge tone={tone}>{upper.replace('_', ' ')}</Badge>
 }
 
 export function MiniMetric({ label, value }: { label: string; value: string }) {
@@ -131,9 +132,9 @@ export function DataTable({ headers, rows }: { headers: string[]; rows: string[]
                 <td className="px-4 py-3 text-[#0a0a0a]" key={`${cell}-${index}`}>
                   {index === row.length - 1 && (cell === 'Active' || cell === 'Inactive' || cell === 'OPEN' || cell === 'IN_PROGRESS' || cell === 'DONE' || cell === 'ATTENDED' || cell === 'CONFIRMED' || cell === 'INVITED') ? (
                     <Badge tone={
-                      cell === 'Active' || cell === 'DONE' || cell === 'ATTENDED' || cell === 'CONFIRMED' ? 'green' : 
-                      cell === 'IN_PROGRESS' || cell === 'INVITED' ? 'amber' : 
-                      'slate'
+                      cell === 'Active' || cell === 'DONE' || cell === 'ATTENDED' || cell === 'CONFIRMED' ? 'green' :
+                        cell === 'IN_PROGRESS' || cell === 'INVITED' ? 'amber' :
+                          'slate'
                     }>
                       {cell}
                     </Badge>
@@ -158,9 +159,8 @@ export function MeetingRow({
   return (
     <div
       onClick={onClick}
-      className={`rounded-2xl border border-[#e5e5e5] bg-[#faf5e8] p-4 transition ${
-        onClick ? 'cursor-pointer hover:bg-white hover:shadow-sm active:scale-[0.99]' : ''
-      }`}
+      className={`rounded-2xl border border-[#e5e5e5] bg-[#faf5e8] p-4 transition ${onClick ? 'cursor-pointer hover:bg-white hover:shadow-sm active:scale-[0.99]' : ''
+        }`}
     >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>

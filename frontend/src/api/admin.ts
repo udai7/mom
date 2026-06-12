@@ -5,6 +5,9 @@ function getAuthHeaders() {
   return {
     'Content-Type': 'application/json',
     'Authorization': token ? `Bearer ${token}` : '',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
   }
 }
 
@@ -62,16 +65,7 @@ export interface RegistrationRequest {
   reviewed_by_user_id: string | null
   reviewed_at: string | null
   review_note: string | null
-  office: {
-    id: string
-    parent_id: string | null
-    dm_root_id: string | null
-    name: string
-    code: string
-    type: string
-    approval_status: string
-    is_active: boolean
-  }
+  office: BackendOffice
   primary_user: {
     id: string
     full_name: string
@@ -79,6 +73,7 @@ export interface RegistrationRequest {
     email: string
     role: string
     status: string
+    employee_id?: string | null
   }
 }
 
@@ -91,6 +86,16 @@ export interface BackendOffice {
   type: string
   approval_status: string
   is_active: boolean
+  department?: string
+  official_email?: string
+  official_phone?: string
+  address_line_1?: string
+  address_line_2?: string
+  city?: string
+  district?: string
+  state?: string
+  pincode?: string
+  website?: string
 }
 
 export interface BackendUser {
@@ -109,6 +114,7 @@ export interface BackendUser {
   }
   permissions: string[]
   must_change_password: boolean
+  employee_id?: string | null
 }
 
 export async function registerDM(params: RegisterDMParams): Promise<BackendOffice> {
@@ -138,7 +144,7 @@ export async function registerOffice(params: RegisterOfficeParams): Promise<Regi
 }
 
 export async function getPendingRegistrations(): Promise<RegistrationRequest[]> {
-  const response = await fetch(`${API_BASE_URL}/registrations/pending`, {
+  const response = await fetch(`${API_BASE_URL}/registrations/pending?t=${Date.now()}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   })
@@ -176,7 +182,7 @@ export async function rejectRegistration(id: string, rejectionReason: string): P
 }
 
 export async function getAccounts(): Promise<BackendUser[]> {
-  const response = await fetch(`${API_BASE_URL}/accounts`, {
+  const response = await fetch(`${API_BASE_URL}/accounts?t=${Date.now()}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   })
@@ -240,7 +246,7 @@ export async function resetPassword(id: string, newPassword: string): Promise<Ba
 }
 
 export async function getAllOffices(): Promise<BackendOffice[]> {
-  const response = await fetch(`${API_BASE_URL}/registrations/offices/all`, {
+  const response = await fetch(`${API_BASE_URL}/registrations/offices/all?t=${Date.now()}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   })
@@ -252,7 +258,7 @@ export async function getAllOffices(): Promise<BackendOffice[]> {
 }
 
 export async function getPublicParentOffices(): Promise<BackendOffice[]> {
-  const response = await fetch(`${API_BASE_URL}/registrations/public/parent-offices`, {
+  const response = await fetch(`${API_BASE_URL}/registrations/public/parent-offices?t=${Date.now()}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
   })

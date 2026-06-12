@@ -121,3 +121,44 @@ class AccountRegistrationRequest(Base):
     primary_user: Mapped[User] = relationship("User", foreign_keys=[primary_user_id])
 
 
+class Meeting(Base):
+    __tablename__ = "meetings"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    office_id: Mapped[UUID] = mapped_column(ForeignKey("offices.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    agenda: Mapped[str] = mapped_column(Text)
+    time: Mapped[str] = mapped_column(String(50))
+    date: Mapped[str] = mapped_column(String(50))
+    venue: Mapped[str] = mapped_column(String(255))
+    institution_name: Mapped[str] = mapped_column(String(255))
+    department_name: Mapped[str] = mapped_column(String(255))
+    meeting_type: Mapped[str] = mapped_column(String(100))
+    chairperson: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="upcoming", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    office: Mapped[Office] = relationship("Office", foreign_keys=[office_id])
+    guests: Mapped[list["MeetingGuest"]] = relationship("MeetingGuest", back_populates="meeting", cascade="all, delete-orphan")
+
+
+class MeetingGuest(Base):
+    __tablename__ = "meeting_guests"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    meeting_id: Mapped[UUID] = mapped_column(ForeignKey("meetings.id"), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    phone: Mapped[str] = mapped_column(String(40))
+    email: Mapped[str] = mapped_column(String(255))
+    office: Mapped[str] = mapped_column(String(255))
+    department: Mapped[str] = mapped_column(String(255))
+    designation: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    meeting: Mapped[Meeting] = relationship("Meeting", back_populates="guests")
+
+
+

@@ -101,6 +101,18 @@ async def main() -> None:
             status="ACTIVE",
         )
 
+        # Build ancestors if none exist
+        from app.models import OfficeAncestor
+        from app.registrations.router import build_ancestors
+        
+        dm_ancestors_stmt = select(OfficeAncestor).where(OfficeAncestor.descendant_office_id == dm.id)
+        if not (await session.execute(dm_ancestors_stmt)).first():
+            await build_ancestors(session, dm.id, parent_id=None)
+            
+        nic_ancestors_stmt = select(OfficeAncestor).where(OfficeAncestor.descendant_office_id == nic.id)
+        if not (await session.execute(nic_ancestors_stmt)).first():
+            await build_ancestors(session, nic.id, parent_id=dm.id)
+
         await session.commit()
 
 

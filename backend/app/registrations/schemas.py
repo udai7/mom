@@ -57,6 +57,16 @@ class OfficeSchemaOut(BaseModel):
     type: str
     approval_status: str
     is_active: bool
+    department: str | None = None
+    official_email: str | None = None
+    official_phone: str | None = None
+    address_line_1: str | None = None
+    address_line_2: str | None = None
+    city: str | None = None
+    district: str | None = None
+    state: str | None = None
+    pincode: str | None = None
+    website: str | None = None
 
     class Config:
         from_attributes = True
@@ -68,6 +78,7 @@ class UserSchemaOut(BaseModel):
     email: EmailStr
     role: str
     status: str
+    employee_id: str | None = None
 
     class Config:
         from_attributes = True

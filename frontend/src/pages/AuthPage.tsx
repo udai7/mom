@@ -41,12 +41,14 @@ export function AuthPage({
   const [regDepartment, setRegDepartment] = useState('')
   const [regOfficialEmail, setRegOfficialEmail] = useState('')
   const [regOfficialPhone, setRegOfficialPhone] = useState('')
+  const [regWebsite, setRegWebsite] = useState('')
   const [regAddressLine1, setRegAddressLine1] = useState('')
   const [regDistrict, setRegDistrict] = useState('')
   const [regState, setRegState] = useState('')
   const [regPincode, setRegPincode] = useState('')
   const [regAdminName, setRegAdminName] = useState('')
   const [regAdminDesignation, setRegAdminDesignation] = useState('')
+  const [regEmployeeId, setRegEmployeeId] = useState('')
   const [regAdminEmail, setRegAdminEmail] = useState('')
   const [regAdminMobile, setRegAdminMobile] = useState('')
   const [regAdminPassword, setRegAdminPassword] = useState('')
@@ -99,12 +101,14 @@ export function AuthPage({
         department: regDepartment || undefined,
         official_email: regOfficialEmail,
         official_phone: regOfficialPhone,
+        website: regWebsite || undefined,
         address_line_1: regAddressLine1,
         district: regDistrict,
         state: regState,
         pincode: regPincode || undefined,
         admin_name: regAdminName,
         admin_designation: regAdminDesignation,
+        employee_id: regEmployeeId || undefined,
         admin_email: regAdminEmail,
         admin_mobile: regAdminMobile,
         admin_password: regAdminPassword,
@@ -117,12 +121,14 @@ export function AuthPage({
       setRegDepartment('')
       setRegOfficialEmail('')
       setRegOfficialPhone('')
+      setRegWebsite('')
       setRegAddressLine1('')
       setRegDistrict('')
       setRegState('')
       setRegPincode('')
       setRegAdminName('')
       setRegAdminDesignation('')
+      setRegEmployeeId('')
       setRegAdminEmail('')
       setRegAdminMobile('')
       setRegAdminPassword('')
@@ -395,6 +401,17 @@ export function AuthPage({
                   </div>
 
                   <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Website URL</label>
+                    <input
+                      type="url"
+                      value={regWebsite}
+                      onChange={(e) => setRegWebsite(e.target.value)}
+                      placeholder="e.g. https://sdmwest.tripura.gov.in"
+                      className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
+                    />
+                  </div>
+
+                  <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Address Line 1 *</label>
                     <input
                       value={regAddressLine1}
@@ -452,15 +469,26 @@ export function AuthPage({
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Admin Designation *</label>
-                    <input
-                      value={regAdminDesignation}
-                      onChange={(e) => setRegAdminDesignation(e.target.value)}
-                      placeholder="e.g. Sub-Divisional Magistrate"
-                      required
-                      className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Admin Designation *</label>
+                      <input
+                        value={regAdminDesignation}
+                        onChange={(e) => setRegAdminDesignation(e.target.value)}
+                        placeholder="e.g. Sub-Divisional Magistrate"
+                        required
+                        className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#6a6a6a] mb-1.5">Employee ID</label>
+                      <input
+                        value={regEmployeeId}
+                        onChange={(e) => setRegEmployeeId(e.target.value)}
+                        placeholder="e.g. EMP123456"
+                        className="w-full clay-input bg-[#faf5e8] border-[#e5e5e5] focus:border-[#0a0a0a]"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

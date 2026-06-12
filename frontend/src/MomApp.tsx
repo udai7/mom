@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { getMeetings, type BackendMeeting } from './api/meetings'
 import {
   Bell,
   Building2,
@@ -272,16 +273,25 @@ function Workspace({
 
   const navigation = useMemo(() => getNavigation(level), [level])
 
-  // Load meetings dynamically from local storage
-  const allMeetings = getStoredMeetings()
-  const visibleMeetings = level === 'Super Admin'
-    ? allMeetings
-    : allMeetings.filter((m) => isAncestorOrSelf(profile.officeCode, m.officeCode))
+  // Fetch meetings from the backend
+  const [meetings, setMeetings] = useState<BackendMeeting[]>([])
+  const [loadingMeetings, setLoadingMeetings] = useState(false)
 
-  const filteredMeetings =
-    meetingFilter === 'All'
-      ? visibleMeetings
-      : visibleMeetings.filter((meeting) => meeting.status === meetingFilter)
+  const loadMeetings = useCallback(async () => {
+    setLoadingMeetings(true)
+    try {
+      const data = await getMeetings()
+      setMeetings(data)
+    } catch (err) {
+      console.error('Failed to load meetings:', err)
+    } finally {
+      setLoadingMeetings(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadMeetings()
+  }, [loadMeetings, activeView])
 
   return (
     <div className="min-h-screen bg-[#fffaf0] text-[#0a0a0a]">
@@ -293,10 +303,10 @@ function Workspace({
         />
       )}
 
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
+      <div className="min-h-screen">
         {/* Sidebar Navigation */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-[#faf5e8] border-r border-[#e5e5e5] text-[#0a0a0a] transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${
+          className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-[#faf5e8] border-r border-[#e5e5e5] text-[#0a0a0a] transition-transform duration-300 lg:translate-x-0 lg:h-screen lg:overflow-y-auto ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
@@ -316,7 +326,7 @@ function Workspace({
             <nav className="flex-1 space-y-1 px-3 py-4">
               {navigation.map(({ view, icon: NavIcon }) => (
                 <button
-                  className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition ${
+                   className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition ${
                     activeView === view
                       ? 'bg-[#0a0a0a] text-white'
                       : 'text-[#3a3a3a] hover:bg-[#f5f0e0]'
@@ -349,7 +359,7 @@ function Workspace({
         </aside>
 
         {/* Main Workspace Frame */}
-        <main className="min-w-0">
+        <main className="min-w-0 lg:pl-[280px]">
           <header className="sticky top-0 z-10 border-b border-[#e5e5e5] bg-[#fffaf0]/95 backdrop-blur">
             {/* Mobile Header Bar */}
             <div className="flex items-center justify-between px-5 py-4 lg:hidden border-b border-[#e5e5e5]/50">
@@ -415,11 +425,13 @@ function Workspace({
             {activeView === 'Overview' && <Dashboard level={level} setActiveView={setActiveView} />}
             {activeView === 'Meetings' && (
               <MeetingList
-                filteredMeetings={filteredMeetings}
+                meetings={meetings}
+                loading={loadingMeetings}
                 meetingFilter={meetingFilter}
                 readOnly={level === 'Parent Office'}
                 setActiveView={setActiveView}
                 setMeetingFilter={setMeetingFilter}
+                onRefresh={loadMeetings}
               />
             )}
             {activeView === 'Create Meeting' && <CreateMeeting />}

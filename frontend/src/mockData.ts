@@ -24,6 +24,16 @@ export type OfficeNode = {
   pending: number
   lastMeeting: string
   children?: OfficeNode[]
+  department?: string
+  official_email?: string
+  official_phone?: string
+  address_line_1?: string
+  address_line_2?: string
+  city?: string
+  district?: string
+  state?: string
+  pincode?: string
+  website?: string
 }
 
 export type Meeting = {

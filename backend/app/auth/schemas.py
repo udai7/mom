@@ -38,6 +38,7 @@ class UserOut(BaseModel):
     office: OfficeOut
     permissions: list[str]
     must_change_password: bool
+    employee_id: str | None = None
 
 
 class TokenResponse(BaseModel):

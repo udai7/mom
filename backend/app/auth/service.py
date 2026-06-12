@@ -62,6 +62,7 @@ def user_to_out(user: User) -> UserOut:
         ),
         permissions=ROLE_PERMISSIONS.get(user.role, []),
         must_change_password=user.must_change_password,
+        employee_id=user.employee_id,
     )
 
 

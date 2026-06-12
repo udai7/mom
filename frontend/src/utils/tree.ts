@@ -31,6 +31,16 @@ export function buildOfficeTree(officesList: BackendOffice[]): OfficeNode[] {
       meetings: meetingsCountMap.get(o.code) || 0,
       pending: pendingCountMap.get(o.code) || 0,
       lastMeeting: lastMeetingMap.get(o.code) || 'N/A',
+      department: o.department,
+      official_email: o.official_email,
+      official_phone: o.official_phone,
+      address_line_1: o.address_line_1,
+      address_line_2: o.address_line_2,
+      city: o.city,
+      district: o.district,
+      state: o.state,
+      pincode: o.pincode,
+      website: o.website,
       children: []
     })
   }
